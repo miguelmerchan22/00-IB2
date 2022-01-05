@@ -30,6 +30,7 @@ export default class Depositos extends Component {
       puntosLostIzquierda: 0,
       puntosLostDerecha: 0,
       directos: 0,
+      depositosInfy: "",
 
     };
 
@@ -246,9 +247,6 @@ export default class Depositos extends Component {
       }
     }
 
-    //console.log(usuario);
-
-    
 
     this.setState({
       registered: usuario.registered,
@@ -268,11 +266,121 @@ export default class Depositos extends Component {
 
   async Investors2() {
 
-    //var precioSITE = await this.rateSITE();
+    let usuario = await this.props.wallet.contractBinary.methods.investors(this.state.currentAccount).call({from:this.state.currentAccount});
 
-    /*this.setState({
-      precioSITE: precioSITE
-    });*/
+    usuario.withdrawable = await this.props.wallet.contractBinary.methods.withdrawable(this.state.currentAccount, false).call({from:this.state.currentAccount});
+    
+    var verdepositos = await this.props.wallet.contractBinary.methods.depositos(this.state.currentAccount, true).call({from:this.state.currentAccount});
+
+    usuario.inicio = 1000;
+
+    var listaDepositos = (
+      <div className="box">
+        <h3 className="title"></h3>
+
+      </div>
+    );
+
+    if (verdepositos[0].length > 0) {
+      var depositos = await this.props.wallet.contractBinary.methods.depositos(this.state.currentAccount, true).call({from:this.state.currentAccount});
+      depositos.amount =  depositos[0];
+      delete depositos[0];
+      depositos.tiempo =  depositos[1];
+      delete depositos[1];
+      depositos.pasivo =  depositos[2];
+      delete depositos[2];
+      depositos.activo =  depositos[3];
+      delete depositos[3];
+
+      //console.log(depositos);
+
+      listaDepositos = [];
+
+      var tiempo = await this.props.wallet.contractBinary.methods.tiempo().call({from:this.state.currentAccount});
+
+      tiempo = tiempo*1000;
+
+      let porcent = await this.props.wallet.contractBinary.methods.porcent().call({from:this.state.currentAccount});
+
+        porcent = porcent/100;
+
+      for (let i = 0; i < depositos.amount.length; i++) {
+
+        if(depositos.tiempo){
+
+        }
+
+        var porcentiempo = (((Date.now()-(depositos.tiempo[i]*1000)))*100)/tiempo;
+
+        //console.log(porcentiempo)
+
+        if(porcentiempo >= 100){
+          porcentiempo = 100;
+        }
+
+        var fecha = new Date((depositos.tiempo[i]*1000)+tiempo);
+        fecha = ""+fecha;
+
+        var proceso;
+        if (depositos.activo[i]  && ((depositos.amount[i]/10**18)*(porcentiempo/100)) < (depositos.amount[i]/10**18)) {
+          if (depositos.pasivo[i]  ) {
+            proceso = <b> (ACTIVE)</b> 
+          } else {
+            proceso = <b> (ACTIVE)</b> 
+          }
+        }else{
+          if (depositos.pasivo[i]  ) {
+            proceso = <b> (FINALIZED)</b> 
+          }else{
+            proceso = <b> (FINALIZED)</b> 
+          }
+        }
+        
+
+        listaDepositos[depositos.amount.length-i] = (
+          <div className="col s12 m12 l12" key={"depsits-"+i}>
+            <div id="basic-demo" className="card card-tabs">
+                <div className="card-content">
+                    <div className="card-title">
+                        <div className="row">
+                            <div className="col s12 m6 l10">
+                                <h4 className="card-title"><b>+ {((depositos.amount[i]/10**18))}</b> USD | Infinity |  
+                                  <meter min="0" max="100" low="25" high="75" optimum="100" value={porcentiempo} /> 
+                                  {porcentiempo.toFixed(6)}% | {proceso}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="view-basic-demo">
+                        <div className="row">
+                            <div className="col s12">
+                              
+                              <p><b>Time to end: </b>{fecha} </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+          <div className="progress" style={{"height": "20px"}}>
+            <div className="progress-bar-striped progress-bar-animated bg-success" role="progressbar" style={{"width": porcentiempo+"%"}} aria-valuenow={this.state.porcentiempo} aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <br></br>
+          
+    
+    
+        </div>
+        );
+        
+      }
+    }
+
+
+    this.setState({
+
+      depositosInfy: listaDepositos
+    });
+
 
   };
 
@@ -317,6 +425,9 @@ export default class Depositos extends Component {
 
               {this.state.depositos}
           
+
+              {this.state.depositosInfy}
+
       </div>
 
     );

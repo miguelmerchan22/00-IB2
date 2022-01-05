@@ -84,11 +84,13 @@ export default class Oficina extends Component {
       }
     }, 7 * 1000);
 
-    setInterval(() => this.Investors2(), 3 * 1000);
-    setInterval(() => this.Investors3(), 3 * 1000);
-    setInterval(() => this.Investors(), 3 * 1000);
-    setInterval(() => this.rango(),3*1000);
-    setInterval(() => this.Link(), 3 * 1000);
+    setInterval(() => {
+      this.Investors2();
+      this.Investors3();
+      this.Investors();
+      this.rango();
+      this.Link();
+    }, 3 * 1000);
   }
 
   async rateSITE() {
@@ -351,11 +353,13 @@ export default class Oficina extends Component {
     var gananciasRango = "Claimed";
     var funcionRango = () => {};
     var cantidad = "";
-    var netxRango = [0,50000/50,100000/50,250000/50,500000/50,1000000/50,1000000/50];
-    var nameRango = ["","INFINITY SENIOR","INFINITY BARON","INFINITY DUKE","INFINITY KING","INFINITY EMPEROR" ]
+    var netxRango = [0, 1000, 2000, 5000, 10000, 20000, 100000, 300000, 500000];
+    var nameRango = ["","Infinity Lord / Madame","Infinity Baron / Baroness",
+    "Infinity Duke / Duchess","Infinity King / Queen 👑","Infinity Emperor/ Empress",
+    "Infinity Conqueror","Infinity World Lord / Madame","Infinity GOD" ]
 
     var textRango = "Next Rank "
-    for (let index = 0; index < 5; index++) {
+    for (let index = 0; index < netxRango.length-1; index++) {
       rangoArray[index] = await this.props.wallet.contractBinary.methods
         .rangoReclamado(this.state.currentAccount, index)
         .call({ from: this.state.currentAccount });
@@ -364,45 +368,48 @@ export default class Oficina extends Component {
     if (rango >= netxRango[0] && rango < netxRango[1]) {
       textRango += rango+"/"+netxRango[1] + " BLKS";
       rango = nameRango[0];
+      console.log("entro1")
       
     }else{
 
-      for (let index = 1; index < netxRango.length; index++) {
-        if (rango >= netxRango[index-1] && rango < netxRango[index]) {
-          textRango += rango+"/"+netxRango[index] + " BLKS";
-          rango = nameRango[index];
-          if (!rangoArray[index-1]) {
-            rangoEstilo = "btn-success";
-            cantidad = await this.props.wallet.contractBinary.methods
-              .gananciasRango(index-1)
-              .call({ from: this.state.currentAccount });
-            cantidad = cantidad / 10 ** 18;
-            gananciasRango = `Claim ${cantidad} USDT`;
-            funcionRango = () => {
-              return this.claim();
-            };
+      if (rango >= netxRango[netxRango.length-1] ) {
+        textRango = "Welcome to the PARADISE!!!";
+        rango = nameRango[nameRango.length-1];
+        if (!rangoArray[nameRango.length-2]) {
+          rangoEstilo = "btn-success";
+          cantidad = await this.props.wallet.contractBinary.methods
+            .gananciasRango(nameRango.length-2)
+            .call({ from: this.state.currentAccount });
+          cantidad = cantidad / 10 ** 18;
+          gananciasRango = `Claim ${cantidad} USDT`;
+          funcionRango = () => {
+            return this.claim();
+          };
+        }
+      }else{
+        for (let index = 1; index < netxRango.length; index++) {
+        
+          if (rango >= netxRango[index] && rango < netxRango[index+1]) {
+            textRango += rango+"/"+netxRango[index+1] + " BLKS";
+            rango = nameRango[index];
+            console.log("entro2")
+            if (!rangoArray[index-1]) {
+              rangoEstilo = "btn-success";
+              cantidad = await this.props.wallet.contractBinary.methods
+                .gananciasRango(index-1)
+                .call({ from: this.state.currentAccount });
+              cantidad = cantidad / 10 ** 18;
+              gananciasRango = `Claim ${cantidad} USDT`;
+              funcionRango = () => {
+                return this.claim();
+              };
+            }
           }
         }
+
       }
 
     }
-
-    if (rango >= netxRango[netxRango.length-1] ) {
-      textRango = "";
-      rango = nameRango[nameRango.length-1];
-      if (!rangoArray[nameRango.length-2]) {
-        rangoEstilo = "btn-success";
-        cantidad = await this.props.wallet.contractBinary.methods
-          .gananciasRango(nameRango.length-2)
-          .call({ from: this.state.currentAccount });
-        cantidad = cantidad / 10 ** 18;
-        gananciasRango = `Claim ${cantidad} USDT`;
-        funcionRango = () => {
-          return this.claim();
-        };
-      }
-    }
-    
 
     this.setState({
       rango: rango,

@@ -126,7 +126,6 @@ contract UnilevelSystem is Context, Admin{
     uint256 membership;
     uint256 balanceRef;
     uint256 totalRef;
-    uint256 totalInfinit;
     uint256 invested;
     uint256 paidAt;
     uint256 paidAt2;
@@ -145,9 +144,10 @@ contract UnilevelSystem is Context, Admin{
 
   uint256 public inversiones = 1;
   uint256[] public primervez = [50, 30, 20, 10, 10];
-  uint256[] public porcientos = [50, 30, 20, 10, 10];
+  uint256[] public porcientos = [15, 9, 6, 3, 3];
   uint256[] public infinity = [5, 3, 2, 1, 1];
 
+  bool[] public baserange = [false,false,false,false,false,false,false,false];
   uint256[] public gananciasRango = [750*10**18, 1500*10**18, 3750*10**18, 7500*10**18, 15000*10**18, 50000*10**18, 150000*10**18, 250000*10**18];
   uint256[] public puntosRango = [1000, 2000, 5000, 10000, 20000, 100000, 300000, 500000];
 
@@ -193,7 +193,7 @@ contract UnilevelSystem is Context, Admin{
     usuario.registered = true;
     usuario.membership = block.timestamp + duracionMembership*unidades*1000000000000000000;
 
-    rangoReclamado[_msgSender()] = [false,false,false,false,false];
+    rangoReclamado[_msgSender()] = baserange;
 
     idToAddress[0] = _msgSender();
     addressToId[_msgSender()] = 0;
@@ -231,10 +231,17 @@ contract UnilevelSystem is Context, Admin{
     return true;
   }
 
-  function setRangos(uint256[] memory _gananciasRango , uint256[] memory _puntosRango ) public onlyOwner returns(bool){
+  function setRangos(bool[] memory _baserange ,uint256[] memory _gananciasRango , uint256[] memory _puntosRango ) public onlyOwner returns(bool){
+    baserange = _baserange;
     gananciasRango = _gananciasRango;
     puntosRango = _puntosRango;
+
+    rangoReclamado[_msgSender()] = baserange;
     return true;
+  }
+
+  function baserangelength() public view returns(uint256){
+    return baserange.length;
   }
 
   function setMIN_RETIRO(uint256 _min) public onlyOwner returns(uint256){
@@ -402,6 +409,7 @@ contract UnilevelSystem is Context, Admin{
     address[] memory referi;
     referi = column(yo, array.length);
     uint256 a;
+    uint256 b;
     Investor storage usuario;
 
     for (uint256 i = 0; i < array.length; i++) {
@@ -412,11 +420,11 @@ contract UnilevelSystem is Context, Admin{
           if ( referi[i] != address(0) ) {
 
             a = amount.mul(array[i]).div(1000);
+            b = amount.mul(porcientos[i]).div(100);
 
             usuario.balanceRef += a;
             usuario.totalRef += a;
-            usuario.depositos.push(Deposito(block.timestamp,(a.mul(porcent)).div(1000),(a.mul(porcent)).div(1000), true));
-            usuario.totalInfinit += (a.mul(porcent)).div(1000);
+            usuario.depositos.push(Deposito(block.timestamp,b,b, true));
 
             totalRefRewards += a;
             
@@ -450,22 +458,23 @@ contract UnilevelSystem is Context, Admin{
 
   function asignarMembership(address _user, address _sponsor) public onlyAdmin returns (bool){
 
+    if (_sponsor == address(0) )revert();
+
     Investor storage usuario = investors[_user];
 
     if(!usuario.registered){
         usuario.registered = true;
         usuario.membership = block.timestamp + duracionMembership*unidades;
         padre[_user] = _sponsor;
+      
+        Investor storage sponsor = investors[_sponsor];
+        sponsor.directos++;
 
-        if (_sponsor != address(0) ){
-          Investor storage sponsor = investors[_sponsor];
-          sponsor.directos++;
-          
-        }
+        hijo[_sponsor].push(_user);
         
         totalInvestors++;
 
-        rangoReclamado[_user] = [false,false,false,false,false];
+        rangoReclamado[_user] = baserange;
         idToAddress[lastUserId] = _user;
         addressToId[_user] = lastUserId;
         
@@ -508,7 +517,7 @@ contract UnilevelSystem is Context, Admin{
         
         totalInvestors++;
 
-        rangoReclamado[_msgSender()] = [false,false,false,false,false];
+        rangoReclamado[_msgSender()] = baserange;
         idToAddress[lastUserId] = _msgSender();
         addressToId[_msgSender()] = lastUserId;
         
@@ -546,15 +555,9 @@ contract UnilevelSystem is Context, Admin{
       if( !USDT_Contract.transferFrom(_msgSender(), address(this), _value) )revert("tranferencia fallida");
       
       if (padre[_msgSender()] != address(0) ){
-        if (usuario.depositos.length < inversiones ){
-          
-          rewardReferers(_msgSender(), _value, primervez);
-          
-        }else{
-          rewardReferers(_msgSender(), _value, porcientos);
 
-        }
-
+        rewardReferers(_msgSender(), _value, primervez);
+          
         Investor storage sponsor = investors[padre[_msgSender()]];
 
         sponsor.blokesDirectos += _bloks;
