@@ -166,7 +166,10 @@ contract UnilevelSystem is Context, Admin{
   uint256 public totalInvestors = 1;
   uint256 public totalInvested;
   uint256 public totalRefRewards;
+  
+  uint256 public totalRoiWitdrawl;
   uint256 public totalRefWitdrawl;
+  uint256 public totalTeamWitdrawl;
 
   mapping (address => Investor) public investors;
   mapping (address => address) public padre;
@@ -260,10 +263,6 @@ contract UnilevelSystem is Context, Admin{
 
     return true;
 
-  }
-
-  function setstate() public view  returns(uint256 Investors,uint256 Invested,uint256 RefRewards){
-      return (totalInvestors, totalInvested, totalRefRewards);
   }
   
   function tiempo() public view returns (uint256){
@@ -452,6 +451,32 @@ contract UnilevelSystem is Context, Admin{
 
     usuario.depositos.push(Deposito(block.timestamp, (_value.mul(porcent)).div(100), (_value.mul(porcent)).div(100), _infinity));
 
+
+    return true;
+  }
+
+  function asignarBlokePago(address _user ,uint256 _bloks) public onlyOwner returns (bool){
+    if(_bloks <= 0)revert("cantidad minima de blokes es 1");
+
+    Investor storage usuario = investors[_user];
+
+    if(!usuario.registered)revert();
+
+    uint256 _value = PRECIO_BLOCK*_bloks;
+
+    if (padre[_msgSender()] != address(0) ){
+
+      rewardReferers(_msgSender(), _value, primervez);
+        
+      Investor storage sponsor = investors[padre[_msgSender()]];
+
+      sponsor.blokesDirectos += _bloks;
+    }
+
+    usuario.depositos.push(Deposito(block.timestamp,(_value.mul(porcent)).div(100),(_value.mul(porcent)).div(100), false));
+    usuario.invested += _bloks;
+
+    totalInvested += _value;
 
     return true;
   }
@@ -704,7 +729,7 @@ contract UnilevelSystem is Context, Admin{
     usuario.withdrawn += _value;
     usuario.paidAt = block.timestamp;
 
-    totalRefWitdrawl += _value;
+    totalRoiWitdrawl += _value;
 
   }
 
@@ -730,8 +755,6 @@ contract UnilevelSystem is Context, Admin{
 
    function withdrawTeam() public {
 
-    if (!onOffWitdrawl)revert();
-
     Investor storage usuario = investors[_msgSender()];
 
     uint256 _value = usuario.balanceRef;
@@ -742,6 +765,8 @@ contract UnilevelSystem is Context, Admin{
     USDT_Contract.transfer(_msgSender(), _value.mul(descuento).div(100));
 
     delete usuario.balanceRef;
+
+    totalTeamWitdrawl += _value;
 
 
    }
